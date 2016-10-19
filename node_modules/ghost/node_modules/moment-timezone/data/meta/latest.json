@@ -1101,7 +1101,7 @@
 			"name": "Myanmar (Burma)",
 			"abbr": "MM",
 			"zones": [
-				"Asia/Rangoon"
+				"Asia/Yangon"
 			]
 		},
 		"MN": {
@@ -3660,8 +3660,8 @@
 			],
 			"comments": "Kwajalein"
 		},
-		"Asia/Rangoon": {
-			"name": "Asia/Rangoon",
+		"Asia/Yangon": {
+			"name": "Asia/Yangon",
 			"lat": 16.7833,
 			"long": 96.1667,
 			"countries": [

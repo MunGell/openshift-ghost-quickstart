@@ -13,7 +13,7 @@ module.exports = function(Bookshelf) {
     connection: config.mysql,
     pool: {
       afterCreate: function(connection, callback) {
-        return Promise.promisify(connection.query, connection)("SET sql_mode='TRADITIONAL';", []).then(function() {
+        return Promise.promisify(connection.query, {context: connection})("SET sql_mode='TRADITIONAL';", []).then(function() {
           callback(null, connection);
         });
       }
@@ -23,13 +23,32 @@ module.exports = function(Bookshelf) {
   var MySQL = require('../bookshelf')(mysql);
   var PostgreSQL = require('../bookshelf')(pg);
   var SQLite3 = require('../bookshelf')(sqlite3);
+  var Swapped = require('../bookshelf')(Knex({}));
+  Swapped.knex = sqlite3;
 
   it('should allow creating a new Bookshelf instance with "new"', function() {
     var bookshelf = new Bookshelf(sqlite3);
     expect(bookshelf.knex).to.equal(sqlite3);
   });
 
-  _.each([MySQL, PostgreSQL, SQLite3], function(bookshelf) {
+  it('should allow swapping in another knex instance', function() {
+    var bookshelf = new Bookshelf(Knex({}));
+    var Models = require('./integration/helpers/objects')(bookshelf).Models;
+    var site = new Models.Site();
+
+    return require('./integration/helpers/migration')(SQLite3).then(function() {
+      return site.save()
+        .then(function() {
+          expect(false).to.equal(true);
+        })
+        .catch(function() {
+          bookshelf.knex = sqlite3;
+          return site.save();
+        });
+    });
+  });
+
+  _.each([MySQL, PostgreSQL, SQLite3, Swapped], function(bookshelf) {
 
     var dialect = bookshelf.knex.client.dialect;
 
@@ -49,7 +68,7 @@ module.exports = function(Bookshelf) {
       } else if (dialect === 'postgresql') {
         require('./integration/json')(bookshelf);
       }
-      
+
       require('./integration/model')(bookshelf);
       require('./integration/collection')(bookshelf);
       require('./integration/relations')(bookshelf);
@@ -57,6 +76,7 @@ module.exports = function(Bookshelf) {
       require('./integration/plugins/virtuals')(bookshelf);
       require('./integration/plugins/visibility')(bookshelf);
       require('./integration/plugins/registry')(bookshelf);
+      require('./integration/plugins/pagination')(bookshelf);
     });
 
   });

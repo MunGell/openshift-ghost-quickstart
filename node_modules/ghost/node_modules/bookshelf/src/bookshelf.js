@@ -1,4 +1,4 @@
-import _ from 'lodash';
+import { extend, result, isString, isArray, isFunction, each } from 'lodash';
 import helpers from './helpers';
 
 // We've supplemented `Events` with a `triggerThen` method to allow for
@@ -25,7 +25,7 @@ import Errors from './errors';
  */
 function Bookshelf(knex) {
   const bookshelf = {
-    VERSION: '0.9.4'
+    VERSION: require('../package.json').version
   };
 
   const Model = bookshelf.Model = BookshelfModel.extend({
@@ -37,9 +37,9 @@ function Bookshelf(knex) {
     // `relation` method, passing in the correct `Model` & `Collection`
     // constructors for later reference.
     _relation(type, Target, options) {
-      if (type !== 'morphTo' && !_.isFunction(Target)) {
+      if (type !== 'morphTo' && !isFunction(Target)) {
         throw new Error('A valid target model must be defined for the ' +
-          _.result(this, 'tableName') + ' ' + type + ' relation');
+          result(this, 'tableName') + ' ' + type + ' relation');
       }
       return new Relation(type, Target, options);
     }
@@ -79,14 +79,14 @@ function Bookshelf(knex) {
      *
      * Customer.collection().fetch().then(function(collection) {
      *   // ...
-     * })
+     * });
      *
      * @param {(Model[])=} models
      * @param {Object=} options
      * @returns {Collection}
      */
     collection(models, options) {
-      return new bookshelf.Collection((models || []), _.extend({}, options, {model: this}));
+      return new bookshelf.Collection((models || []), extend({}, options, {model: this}));
     },
 
     /**
@@ -154,7 +154,7 @@ function Bookshelf(knex) {
      * var accounts = Accounts.forge([
      *   {name: 'Person1'},
      *   {name: 'Person2'}
-     * ])
+     * ]);
      *
      * Promise.all(accounts.invoke('save')).then(function() {
      *   // collection models should now be saved...
@@ -178,7 +178,7 @@ function Bookshelf(knex) {
   // in the `Events` object. It also contains the version number, and a
   // `Transaction` method referencing the correct version of `knex` passed into
   // the object.
-  _.extend(bookshelf, Events, Errors, {
+  extend(bookshelf, Events, Errors, {
 
     /**
      * @method Bookshelf#transaction
@@ -203,7 +203,6 @@ function Bookshelf(knex) {
      *             {title: 'Moby Dick'},
      *             {title: 'Hamlet'}
      *           ], function(info) {
-     *
      *             // Some validation could take place here.
      *             return new Book(info).save({'shelf_id': model.id}, {transacting: t});
      *           });
@@ -243,7 +242,7 @@ function Bookshelf(knex) {
     // `Bookshelf` instance, injecting the current instance into the plugin,
     // which should be a module.exports.
     plugin(plugin, options) {
-      if (_.isString(plugin)) {
+      if (isString(plugin)) {
         try {
           require('./plugins/' + plugin)(this, options);
         } catch (e) {
@@ -254,8 +253,8 @@ function Bookshelf(knex) {
             require(plugin)(this, options)
           }
         }
-      } else if (_.isArray(plugin)) {
-        _.each(plugin, (p) => {
+      } else if (isArray(plugin)) {
+        each(plugin, (p) => {
           this.plugin(p, options);
         });
       } else {
@@ -285,10 +284,10 @@ function Bookshelf(knex) {
   function builderFn(tableNameOrBuilder) {
     let builder = null;
 
-    if (_.isString(tableNameOrBuilder)) {
-      builder = knex(tableNameOrBuilder);
+    if (isString(tableNameOrBuilder)) {
+      builder = bookshelf.knex(tableNameOrBuilder);
     } else if (tableNameOrBuilder == null) {
-      builder = knex.queryBuilder();
+      builder = bookshelf.knex.queryBuilder();
     } else {
       // Assuming here that `tableNameOrBuilder` is a QueryBuilder instance. Not
       // aware of a way to check that this is the case (ie. using
